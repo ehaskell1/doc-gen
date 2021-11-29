@@ -11,7 +11,9 @@ visit our <a href="https://leanprover-community.github.io">community website</a>
 <p>This documentation was automatically generated using
 <a href="https://github.com/leanprover-community/doc-gen">doc-gen</a> on the following source commits:</p>
 <ul>
-  <li>mathlib <a href="{{ mathlib_github_root }}/tree/{{ mathlib_commit }}">{{ mathlib_commit }}</a></li>
+  {% for e in entries %}
+  <li>{{e.name}} <a href="{{e.url}}">{{e.commit}}</a></li>
+  {% endfor %}
   <li>Lean <a href="https://github.com/leanprover-community/lean/blob/{{ lean_commit }}/library">{{ lean_commit }}</a></li>
   <li>doc-gen <a href="https://github.com/leanprover-community/doc-gen/tree/{{ docgen_commit }}">{{ docgen_commit }}</a></li>
 </ul>

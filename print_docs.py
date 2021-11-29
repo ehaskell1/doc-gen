@@ -79,7 +79,7 @@ html_root = os.path.join(root, cl_args.t if cl_args.t else 'html') + '/'
 site_root = "/"
 
 # root directory of mathlib.
-local_lean_root = os.path.join(root, cl_args.r if cl_args.r else '_target/deps/mathlib') + '/'
+local_lean_root = os.path.join(root, '_target/deps/mathlib') + '/'
 
 latexnodes2text = LatexNodes2Text()
 def clean_tex(src: str) -> str:
@@ -150,19 +150,12 @@ def parse_bib_file(fname):
 
 with open('leanpkg.toml') as f:
   parsed_toml = toml.loads(f.read())
-ml_data = parsed_toml['dependencies']['mathlib']
-mathlib_commit = ml_data['rev']
-mathlib_github_root = ml_data['git'].strip('/')
 
 if cl_args.w:
   site_root = cl_args.w
 
 # contains an array of [prefix, replacement] strings to be rewritten by nav.js
 url_rewrites = []
-
-mathlib_github_src_root_with_commit = f"{mathlib_github_root}/blob/{mathlib_commit}/src/"
-mathlib_github_src_root = f"{mathlib_github_root}/blob/master/src/"
-url_rewrites.append([mathlib_github_src_root, mathlib_github_src_root_with_commit])
 
 # The Lean version changes infrequently enough that we don't need to rewrite it
 lean_commit = subprocess.check_output(['lean', '--run', 'src/lean_commit.lean']).decode()
@@ -229,8 +222,6 @@ class ImportName(NamedTuple):
 
 docgen_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()  # removing '\n'
 
-env.globals['mathlib_github_root'] = mathlib_github_root
-env.globals['mathlib_commit'] = mathlib_commit
 env.globals['lean_commit'] = lean_commit
 env.globals['docgen_commit'] = docgen_commit
 env.globals['site_root'] = site_root
@@ -240,11 +231,15 @@ markdown_renderer = CustomHTMLRenderer()
 def convert_markdown(ds):
   return markdown_renderer.render_md(ds)
 
-# TODO: allow extending this for third-party projects
-library_link_roots = {
-  'core': lean_root,
-  'mathlib': mathlib_github_src_root,
-}
+library_link_roots = { 'core' : lean_root }
+index_entries = []
+for (path, project) in path_info:
+  if project != 'core':
+    origin = subprocess.check_output(['git', 'remote', 'get-url', 'origin'], cwd = path).decode().strip()
+    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd = path).decode().strip()
+    library_link_roots[project] = f'{origin}/blob/{commit}/src/'
+    if project != 'lean':
+      index_entries.append({ 'name': project, 'url': f'{origin}/tree/{commit}', commit: commit})
 
 def library_link(filename: ImportName, line=None):
   try:
@@ -567,7 +562,8 @@ def write_html_files(partition, loc_map, notes, mod_docs, instances, tactic_docs
     current_filename = 'index.html'
     current_project = None
     out.write(env.get_template('index.j2').render(
-      active_path=''))
+      active_path='',
+      entries = index_entries))
 
   with open_outfile('404.html') as out:
     current_filename = '404.html'
