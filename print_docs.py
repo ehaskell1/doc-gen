@@ -238,8 +238,8 @@ for (path, project) in path_info:
     origin = subprocess.check_output(['git', 'remote', 'get-url', 'origin'], cwd = path).decode().strip()
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd = path).decode().strip()
     library_link_roots[project] = f'{origin}/blob/{commit}/src/'
-    if project != 'lean':
-      index_entries.append({ 'name': project, 'url': f'{origin}/tree/{commit}', commit: commit})
+    if not (project in ['lean', '.']):
+      index_entries.append({ 'name': project, 'url': f'{origin}/tree/{commit}', 'commit': commit})
 
 def library_link(filename: ImportName, line=None):
   try:
